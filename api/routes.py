@@ -1,20 +1,20 @@
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from schemas.user import UserCreate, User
+
+from database import get_db
 from schemas.auth import Token
+from schemas.user import UserCreate, User
 from services.auth import (
     create_user,
     authenticate_user,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
     get_user,
-    get_current_user,
-    get_current_active_user
+    get_current_user
 )
-from database import get_db
-from fastapi.security import OAuth2PasswordRequestForm
-
+from services.dog_service import get_dogs_summary
 
 router = APIRouter()
 
@@ -70,8 +70,10 @@ async def read_user(
         )
     return db_user
 
-@router.get("/users/me/validate-token")
-async def validate_token(
-    current_user: User = Depends(get_current_active_user)
+@router.get("/dogs")
+async def get_dogs(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    return {"valid": True, "username": current_user.username}
+    dogs_summary = get_dogs_summary(db)
+    return dogs_summary
