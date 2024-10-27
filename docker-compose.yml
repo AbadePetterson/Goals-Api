@@ -6,9 +6,12 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
+    networks:
+      - my_network
 
   db:
     image: postgres:13
@@ -17,9 +20,19 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "54322:5432"  # Mapeia a porta 5432 do contêiner para a porta 54322 da máquina host
+      - "54322:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - my_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
+
+networks:
+  my_network:
