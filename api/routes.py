@@ -14,7 +14,12 @@ from services.auth import (
     get_user,
     get_current_user
 )
-from services.dog_service import get_dogs_summary
+from schemas.goal import Goal, GoalCreate, GoalUpdate, GoalStatus
+from schemas.step import Step, StepCreate, StepUpdate
+from models.goal import GoalDB
+from models.step import StepDB
+from datetime import datetime
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -70,10 +75,144 @@ async def read_user(
         )
     return db_user
 
-@router.get("/dogs")
-async def get_dogs(
+@router.post("/goals/", response_model=Goal)
+async def create_goal(
+    goal: GoalCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
-    dogs_summary = get_dogs_summary(db)
-    return dogs_summary
+    db_goal = GoalDB(**goal.dict(), user_id=current_user.id)
+    db.add(db_goal)
+    db.commit()
+    db.refresh(db_goal)
+    return db_goal
+
+@router.get("/goals/", response_model=List[Goal])
+async def get_goals(
+    status: Optional[GoalStatus] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(GoalDB).filter(GoalDB.user_id == current_user.id)
+    if status:
+        query = query.filter(GoalDB.status == status)
+    return query.all()
+
+@router.get("/goals/{goal_id}", response_model=Goal)
+async def get_goal(
+    goal_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    goal = db.query(GoalDB).filter(
+        GoalDB.id == goal_id,
+        GoalDB.user_id == current_user.id
+    ).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    return goal
+
+@router.put("/goals/{goal_id}", response_model=Goal)
+async def update_goal(
+    goal_id: int,
+    goal_update: GoalUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_goal = db.query(GoalDB).filter(
+        GoalDB.id == goal_id,
+        GoalDB.user_id == current_user.id
+    ).first()
+    if not db_goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    for key, value in goal_update.dict(exclude_unset=True).items():
+        setattr(db_goal, key, value)
+    
+    db.commit()
+    db.refresh(db_goal)
+    return db_goal
+
+@router.delete("/goals/{goal_id}")
+async def delete_goal(
+    goal_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    db_goal = db.query(GoalDB).filter(
+        GoalDB.id == goal_id,
+        GoalDB.user_id == current_user.id
+    ).first()
+    if not db_goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    db.delete(db_goal)
+    db.commit()
+    return {"message": "Goal deleted"}
+
+# Rotas de Steps
+@router.post("/goals/{goal_id}/steps/", response_model=Step)
+async def create_step(
+    goal_id: int,
+    step: StepCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    goal = db.query(GoalDB).filter(
+        GoalDB.id == goal_id,
+        GoalDB.user_id == current_user.id
+    ).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    db_step = StepDB(**step.dict(), goal_id=goal_id)
+    db.add(db_step)
+    db.commit()
+    db.refresh(db_step)
+    
+    update_goal_progress(db, goal)
+    return db_step
+
+@router.put("/goals/{goal_id}/steps/{step_id}", response_model=Step)
+async def update_step(
+    goal_id: int,
+    step_id: int,
+    step_update: StepUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    goal = db.query(GoalDB).filter(
+        GoalDB.id == goal_id,
+        GoalDB.user_id == current_user.id
+    ).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    
+    db_step = db.query(StepDB).filter(
+        StepDB.id == step_id,
+        StepDB.goal_id == goal_id
+    ).first()
+    if not db_step:
+        raise HTTPException(status_code=404, detail="Step not found")
+    
+    for key, value in step_update.dict(exclude_unset=True).items():
+        setattr(db_step, key, value)
+    
+    if step_update.is_completed:
+        db_step.completed_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_step)
+    
+    update_goal_progress(db, goal)
+    return db_step
+
+# Função auxiliar para atualizar o progresso da meta
+def update_goal_progress(db: Session, goal: GoalDB):
+    total_steps = len(goal.steps)
+    if total_steps > 0:
+        completed_steps = len([s for s in goal.steps if s.is_completed])
+        goal.progress = int((completed_steps / total_steps) * 100)
+        if goal.progress == 100:
+            goal.status = GoalStatus.COMPLETED
+        db.commit()
