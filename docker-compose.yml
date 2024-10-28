@@ -12,6 +12,8 @@ services:
       - .env
     networks:
       - my_network
+    volumes:
+      - .:/code
 
   db:
     image: postgres:13
@@ -27,7 +29,7 @@ services:
       - my_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
 
