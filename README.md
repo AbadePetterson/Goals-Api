@@ -11,7 +11,7 @@ Clone the repository:
 
 bash
 ```
-git clone https://github.com/your-username/degraus.git
+git clone git@github.com:AbadePetterson/Goals-Api.git
 ```
 
 Install dependencies:
