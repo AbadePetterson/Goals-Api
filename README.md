@@ -1,29 +1,25 @@
-# Pet Management API
+# Degraus 🚀
+Degraus is an application built to help you set, track, and achieve your goals. With an intuitive interface and progress-focused features, Degraus allows you to reach your objectives one step at a time.
 
-## Project Description
+# 🔑 Key Features
+Goal Creation: Set personal and professional goals categorized by priority and deadline.
+Progress Tracking: Visualize your progress through customized steps or “stairs.”
+Custom Reminders: Receive notifications to stay focused on your objectives.
+Statistics & Insights: Analyze overall progress and track completed and ongoing goals.
+# 🚀 Getting Started
+Clone the repository:
 
-This project is an API developed with Python using the **FastAPI** framework. The goal is to provide an efficient system for managing information about pets, allowing for the creation, reading, updating, and deletion of data related to dogs and their procedures at pet shops.
+bash
+```
+git clone https://github.com/your-username/degraus.git
+```
 
-## Key Features
+Install dependencies:
 
-- **Secure Authentication**: Utilizes **JSON Web Tokens (JWT)** for secure and efficient authentication, allowing restricted access to certain API routes.
-- **Containerization with Docker**: Configured to run in Docker containers, simplifying the setup of the development environment and deployment.
-- **Modular Structure**: Follows a modular architecture, separating routes, services, and models for better organization and maintainability.
-- **Interactive Documentation**: Automatically generated documentation by FastAPI, enabling developers to easily interact with the API through a web interface.
+bash
+```
+pip install -r requirements.txt
+Set up your environment: Create a .env file with database configuration variables and a secret key.
 
-## Technologies Used
+Start the server and explore! Access the app at http://localhost:8000.
 
-- Python
-- FastAPI
-- Docker
-- PostgreSQL (for data storage)
-- JWT (for authentication)
-
-## Getting Started
-
-To run this project locally, follow these steps:
-
-### Prerequisites
-
-- [Docker](https://www.docker.com/get-started) installed on your machine.
-- [Docker Compose](https://docs.docker.com/compose/) installed (comes with Docker Desktop).
